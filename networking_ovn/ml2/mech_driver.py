@@ -17,7 +17,6 @@ import functools
 import operator
 import threading
 import types
-import uuid
 
 from neutron_lib.api.definitions import portbindings
 from neutron_lib.callbacks import events
@@ -33,6 +32,7 @@ from oslo_config import cfg
 from oslo_db import exception as os_db_exc
 from oslo_log import log
 from oslo_utils import timeutils
+from ovsdbapp.backend.ovs_idl import idlutils
 
 from neutron.common import utils as n_utils
 from neutron.db import provisioning_blocks
@@ -40,11 +40,9 @@ from neutron.plugins.ml2 import db as ml2_db
 from neutron.services.segments import db as segment_service_db
 
 from networking_ovn._i18n import _
-from networking_ovn.agent import stats
 from networking_ovn.common import acl as ovn_acl
 from networking_ovn.common import config
 from networking_ovn.common import constants as ovn_const
-from networking_ovn.common import exceptions as ovn_exc
 from networking_ovn.common import maintenance
 from networking_ovn.common import ovn_client
 from networking_ovn.common import utils
@@ -58,6 +56,7 @@ from networking_ovn.ovsdb import worker
 
 LOG = log.getLogger(__name__)
 METADATA_READY_WAIT_TIMEOUT = 15
+AGENTS = {}
 
 
 class MetadataServiceReadyWaitTimeoutException(Exception):
@@ -185,6 +184,11 @@ class OVNMechanismDriver(api.MechanismDriver):
         self._ovn_client_inst = None
         self._nb_ovn, self._sb_ovn = impl_idl_ovn.get_ovn_idls(self,
                                                                trigger)
+
+        # AGENTS must be populated after fork so if ovn-controller is stopped
+        # before a worker handles a get_agents request, we still show agents
+        populate_agents(self)
+
         # Override agents API methods
         self.patch_plugin_merge("get_agents", get_agents)
         self.patch_plugin_choose("get_agent", get_agent)
@@ -921,22 +925,28 @@ class OVNMechanismDriver(api.MechanismDriver):
 
     def agent_alive(self, chassis, type_):
         nb_cfg = chassis.nb_cfg
-        id_ = chassis.uuid
+        key = ovn_const.OVN_LIVENESS_CHECK_EXT_ID_KEY
         if type_ == ovn_const.OVN_METADATA_AGENT:
-            id_ = utils.ovn_metadata_name(chassis.uuid)
             nb_cfg = int(chassis.external_ids.get(
                 ovn_const.OVN_AGENT_METADATA_SB_CFG_KEY, 0))
-
-        if self._nb_ovn.nb_global.nb_cfg == nb_cfg:
-            return True
-        now = timeutils.utcnow()
+            key = ovn_const.METADATA_LIVENESS_CHECK_EXT_ID_KEY
 
         try:
-            updated_at = stats.AgentStats.get_stat(id_).updated_at
-        except ovn_exc.AgentStatsNotFound:
-            return False
+            updated_at = timeutils.parse_isotime(chassis.external_ids[key])
+        except KeyError:
+            updated_at = timeutils.utcnow(with_timezone=True)
+
+        if self._nb_ovn.nb_global.nb_cfg == nb_cfg:
+            # update the time of our successful check
+            value = timeutils.utcnow(with_timezone=True).isoformat()
+            self._sb_ovn.db_set('Chassis', chassis.uuid,
+                                ('external_ids', {key: value})).execute(
+                check_error=True)
+            return True
+        now = timeutils.utcnow(with_timezone=True)
 
         if (now - updated_at).total_seconds() < cfg.CONF.agent_down_time:
+            # down, but not yet timed out
             return True
         return False
 
@@ -964,7 +974,8 @@ class OVNMechanismDriver(api.MechanismDriver):
 
         # Check for ovn-controller / ovn-controller gateway
         agent_type = ovn_const.OVN_CONTROLLER_AGENT
-        agent_id = str(chassis.uuid)
+        # Only the chassis name stays consistent after ovn-controller restart
+        agent_id = chassis.name
         if ('enable-chassis-as-gw' in
                 chassis.external_ids.get('ovn-cms-options', [])):
             agent_type = ovn_const.OVN_CONTROLLER_GW_AGENT
@@ -1022,11 +1033,19 @@ class OVNMechanismDriver(api.MechanismDriver):
             txn.add(self._nb_ovn.check_liveness())
 
 
+def populate_agents(driver):
+    for ch in driver._sb_ovn.tables['Chassis'].rows.values():
+        # update the cache, rows are hashed on uuid but it is the name that
+        # stays consistent across ovn-controller restarts
+        AGENTS.update({ch.name: ch})
+
+
 def get_agents(self, context, filters=None, fields=None, _driver=None):
     _driver.ping_chassis()
     filters = filters or {}
     agent_list = []
-    for ch in _driver._sb_ovn.tables['Chassis'].rows.values():
+    populate_agents(_driver)
+    for ch in AGENTS.values():
         for agent in _driver.agents_from_chassis(ch).values():
             if all(agent[k] in v for k, v in filters.items()):
                 agent_list.append(agent)
@@ -1036,8 +1055,9 @@ def get_agents(self, context, filters=None, fields=None, _driver=None):
 def get_agent(self, context, id, fields=None, _driver=None):
     chassis = None
     try:
-        chassis = _driver._sb_ovn.tables['Chassis'].rows[uuid.UUID(id)]
-    except KeyError:
+        # look up Chassis by *name*, which the id attribte is
+        chassis = _driver._sb_ovn.lookup('Chassis', id)
+    except idlutils.RowNotFound:
         # If the UUID is not found, check for the metadata agent ID
         for ch in _driver._sb_ovn.tables['Chassis'].rows.values():
             metadata_agent_id = ch.external_ids.get(
@@ -1046,7 +1066,7 @@ def get_agent(self, context, id, fields=None, _driver=None):
                 chassis = ch
                 break
         else:
-            raise
+            raise n_exc.agent.AgentNotFound(id=id)
     return _driver.agents_from_chassis(chassis)[id]
 
 

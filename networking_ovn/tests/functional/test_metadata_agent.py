@@ -26,7 +26,6 @@ from ovsdbapp import event as ovsdb_event
 from networking_ovn.agent.metadata import agent
 from networking_ovn.agent.metadata import ovsdb
 from networking_ovn.agent.metadata import server as metadata_server
-from networking_ovn.agent import stats
 from networking_ovn.common import constants as ovn_const
 from networking_ovn.common import exceptions as ovn_exc
 from networking_ovn.conf.agent.metadata import config as meta
