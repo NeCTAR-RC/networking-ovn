@@ -13,22 +13,27 @@
 #    under the License.
 
 import abc
+import datetime
 
 from neutron_lib.plugins import constants
 from neutron_lib.plugins import directory
 from neutron_lib.utils import helpers
+from oslo_config import cfg
 from oslo_log import log
+from oslo_utils import timeutils
 from ovs.stream import Stream
 from ovsdbapp.backend.ovs_idl import connection
 from ovsdbapp.backend.ovs_idl import event as row_event
 from ovsdbapp.backend.ovs_idl import idlutils
 from ovsdbapp import event
 
-from networking_ovn.agent import stats
 from networking_ovn.common import config as ovn_config
 from networking_ovn.common import constants as ovn_const
+from networking_ovn.common import hash_ring_manager
 from networking_ovn.common import utils
+from networking_ovn.db import hash_ring as db_hash_ring
 
+CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
 
@@ -52,57 +57,6 @@ class BaseEvent(row_event.RowEvent):
         LOG.debug("%s : Matched %s, %s, %s %s", self.event_name, self.table,
                   event, self.conditions, self.old_conditions)
         return True
-
-
-class ChassisAgentDeleteEvent(BaseEvent):
-    table = 'Chassis'
-    events = (BaseEvent.ROW_DELETE,)
-
-    def run(self, event, row, old):
-        stats.AgentStats.del_agent(row.uuid)
-        stats.AgentStats.del_agent(utils.ovn_metadata_name(row.uuid))
-
-    def match_fn(self, event, row, old=None):
-        return True
-
-
-class ChassisGatewayAgentEvent(BaseEvent):
-    table = 'Chassis'
-    events = (BaseEvent.ROW_CREATE, BaseEvent.ROW_UPDATE)
-
-    def match_fn(self, event, row, old=None):
-        return event == self.ROW_CREATE or getattr(old, 'nb_cfg', False)
-
-    def run(self, event, row, old):
-        stats.AgentStats.add_stat(row.uuid, row.nb_cfg)
-
-
-class ChassisMetadataAgentEvent(BaseEvent):
-    table = 'Chassis'
-    events = (BaseEvent.ROW_CREATE, BaseEvent.ROW_UPDATE)
-
-    @staticmethod
-    def _metadata_nb_cfg(row):
-        return int(row.external_ids[ovn_const.OVN_AGENT_METADATA_SB_CFG_KEY])
-
-    def match_fn(self, event, row, old=None):
-        if event == self.ROW_CREATE:
-            return True
-        try:
-            return self._metadata_nb_cfg(row) != self._metadata_nb_cfg(old)
-        except (AttributeError, KeyError):
-            return False
-
-    def run(self, event, row, old):
-        try:
-            stats.AgentStats.add_stat(utils.ovn_metadata_name(row.uuid),
-                                      self._metadata_nb_cfg(row))
-        except (AttributeError, KeyError):
-            LOG.warning('No "%(key)s" key found for the metadata agent at '
-                        'Chassis %(chassis)s',
-                        {'key': ovn_const.OVN_AGENT_METADATA_SB_CFG_KEY,
-                         'chassis': row.uuid})
-            return
 
 
 class ChassisEvent(row_event.RowEvent):
@@ -319,14 +273,6 @@ class BaseOvnIdl(connection.OvsdbIdl):
 
 
 class BaseOvnSbIdl(connection.OvsdbIdl):
-    def __init__(self, remote, schema):
-        super(BaseOvnSbIdl, self).__init__(remote, schema)
-        self.notify_handler = event.RowEventHandler()
-        events = [ChassisAgentDeleteEvent(), ChassisGatewayAgentEvent()]
-        if ovn_config.is_ovn_metadata_enabled():
-            events.append(ChassisMetadataAgentEvent())
-        self.notify_handler.watch_events(events)
-
     @classmethod
     def from_server(cls, connection_string, schema_name):
         _check_and_set_ssl_files(schema_name)
@@ -337,8 +283,54 @@ class BaseOvnSbIdl(connection.OvsdbIdl):
         helper.register_table('Datapath_Binding')
         return cls(connection_string, helper)
 
+
+class OvnIdlDistributedLock(BaseOvnIdl):
+
+    def __init__(self, driver, remote, schema):
+        super(OvnIdlDistributedLock, self).__init__(remote, schema)
+        self.driver = driver
+        self.notify_handler = OvnDbNotifyHandler(driver)
+        self._node_uuid = self.driver.node_uuid
+        self._hash_ring = hash_ring_manager.HashRingManager(
+            self.driver.hash_ring_group)
+        self._last_touch = None
+
     def notify(self, event, row, updates=None):
+        try:
+            target_node = self._hash_ring.get_node(str(row.uuid))
+        except exceptions.HashRingIsEmpty as e:
+            LOG.error('HashRing is empty, error: %s', e)
+            return
+
+        if target_node != self._node_uuid:
+            return
+
+        # If the worker hasn't been health checked by the maintenance
+        # thread (see bug #1834498), indicate that it's alive here
+        time_now = timeutils.utcnow()
+        touch_timeout = time_now - datetime.timedelta(
+            seconds=ovn_const.HASH_RING_TOUCH_INTERVAL)
+        if not self._last_touch or touch_timeout >= self._last_touch:
+            # NOTE(lucasagomes): Guard the db operation with an exception
+            # handler. If heartbeating fails for whatever reason, log
+            # the error and continue with processing the event
+            try:
+                db_hash_ring.touch_node(self._node_uuid)
+                self._last_touch = time_now
+            except Exception as e:
+                LOG.exception('Hash Ring node %s failed to heartbeat',
+                              self._node_uuid)
+
+        LOG.debug('Hash Ring: Node %(node)s (host: %(hostname)s) '
+                  'handling event "%(event)s" for row %(row)s '
+                  '(table: %(table)s)',
+                  {'node': self._node_uuid, 'hostname': CONF.host,
+                   'event': event, 'row': row.uuid, 'table': row._table.name})
         self.notify_handler.notify(event, row, updates)
+
+    @abc.abstractmethod
+    def post_connect(self):
+        """Should be called after the idl has been initialized"""
 
 
 class OvnIdl(BaseOvnIdl):
