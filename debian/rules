@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+
+include /usr/share/openstack-pkg-tools/pkgos.make
+
+%:
+	dh $@ --buildsystem=python_distutils --with python3
+
+override_dh_auto_test:
+ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
+	pkgos-dh_auto_test --no-py2
+endif
+
+override_dh_auto_install:
+	pkgos-dh_auto_install --no-py2
+	mkdir -p $(CURDIR)/debian/networking-ovn-common/usr/share/ansible
+	mv $(CURDIR)/debian/python3-networking-ovn/usr/share/ansible/* $(CURDIR)/debian/networking-ovn-common/usr/share/ansible/
+	rm -rf $(CURDIR)/debian/python*-networking-ovn/usr/share/ansible
+
+override_dh_install:
+	# NOTE: generate configuration files directly
+	mkdir -p etc/neutron/plugins/ml2
+	for file in `ls etc/oslo-config-generator/*`; do \
+	     PYTHONPATH=$(CURDIR) oslo-config-generator --config-file=$$file \
+	        --output-file=etc/neutron/`basename $$file`; \
+	done
+	mkdir -p etc/neutron/plugins/ml2
+	mv etc/neutron/ml2_conf.ini etc/neutron/plugins/ml2/ml2_conf.ovn.ini
+	rm -rf debian/python*-networking-ovn/usr/etc
+	dh_install
+
+override_dh_clean:
+	dh_clean -O--buildsystem=python_distutils
+	rm -rf build
+	for file in `ls etc/oslo-config-generator/*`; do rm -f etc/neutron/`basename $$file`; done
+	rm -rf etc/neutron
+
+override_dh_python3:
+	dh_python3 --shebang=/usr/bin/python3

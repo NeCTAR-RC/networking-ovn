@@ -1,0 +1,250 @@
+networking-ovn (6.0.0-0ubuntu1~cloud0) bionic-stein; urgency=medium
+
+  * New upstream release for the Ubuntu Cloud Archive.
+
+ -- Openstack Ubuntu Testing Bot <openstack-testing-bot@ubuntu.com>  Mon, 15 Apr 2019 09:21:15 +0000
+
+networking-ovn (6.0.0-0ubuntu1) disco; urgency=medium
+
+  * New upstream release for OpenStack Stein.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 12 Apr 2019 09:46:17 +0100
+
+networking-ovn (6.0.0~rc1-0ubuntu1) disco; urgency=medium
+
+  * New upstream release candidate for OpenStack Stein.
+  * d/control: Align (Build-)Depends with upstream.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 22 Mar 2019 10:11:57 +0000
+
+networking-ovn (6.0.0~b1-0ubuntu1) disco; urgency=medium
+
+  * d/watch: Track 6.x series.
+  * New upstream milestone for OpenStack Stein.
+  * d/control: Align (Build-)Depends with upstream.
+  * d/control: Update Vcs-* for Ubuntu.
+
+ -- James Page <james.page@ubuntu.com>  Tue, 19 Mar 2019 10:34:28 +0000
+
+networking-ovn (6.0.0~b1~git2019013133.b1bbe86-0ubuntu1) disco; urgency=medium
+
+  * New upstream snapshot for OpenStack Stein.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 01 Feb 2019 09:35:56 +0000
+
+networking-ovn (6.0.0~b1~git2018111601.64ec23a-0ubuntu1) disco; urgency=medium
+
+  * New upstream snapshot for OpenStack Stein.
+  * d/control,rules,python-*: Drop Python 2 support.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 16 Nov 2018 12:06:38 +0000
+
+networking-ovn (5.0.0-0ubuntu2) cosmic; urgency=medium
+
+  * d/rules: Ensure /usr/share/ansible is installed by common package, to
+    resolve issues with co-installability.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 06 Sep 2018 14:37:57 -0400
+
+networking-ovn (5.0.0-0ubuntu1) cosmic; urgency=medium
+
+  * New upstream release for OpenStack Rocky.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 30 Aug 2018 13:30:11 -0400
+
+networking-ovn (5.0.0~rc1-0ubuntu1) cosmic; urgency=medium
+
+  * New upstream release candidate for OpenStack Rocky.
+  * d/control: Align (Build-)Depends with upstream.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Fri, 10 Aug 2018 15:38:40 -0400
+
+networking-ovn (5.0.0~b3-0ubuntu1) cosmic; urgency=medium
+
+  * New upstream milestone for OpenStack Rocky.
+  * d/control: Align (Build-)Depends with upstream.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Wed, 08 Aug 2018 12:47:06 -0400
+
+networking-ovn (5.0.0~b2-0ubuntu2) cosmic; urgency=medium
+
+  * Add Python 3 support:
+    - d/control: Add BD's for py3.
+    - d/control,networking-ovn-common.install: Add -common
+      package for shared configuration files, add Depends from
+      python{3}-networking-ovn.
+    - d/control: Deal with move of configuration files to -common.
+    - d/rules: Use pkgos-dh_auto_install.
+    - d/rules: Directly generate sample config files.
+
+ -- James Page <james.page@ubuntu.com>  Wed, 20 Jun 2018 14:31:03 +0100
+
+networking-ovn (5.0.0~b2-0ubuntu1) cosmic; urgency=medium
+
+  * d/watch: Align to rocky series.
+  * New upstream milestone for Rocky.
+  * Align (Build-)Depends with upstream.
+
+ -- James Page <james.page@ubuntu.com>  Wed, 13 Jun 2018 17:03:50 +0100
+
+networking-ovn (4.0.0-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release for OpenStack Queens.
+
+ -- James Page <james.page@ubuntu.com>  Wed, 28 Feb 2018 16:50:26 +0000
+
+networking-ovn (4.0.0~rc2-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release candidate for OpenStack Queens.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Tue, 20 Feb 2018 12:48:23 -0500
+
+networking-ovn (4.0.0~rc1-0ubuntu1) bionic; urgency=medium
+
+  * New upstream milestone for OpenStack Queens.
+  * d/control: Align (Build-)Depends with upstream.
+  * d/control: Use python3-sphinx.
+
+ -- James Page <james.page@ubuntu.com>  Mon, 12 Feb 2018 17:52:47 +0000
+
+networking-ovn (4.0.0~b3-0ubuntu1) bionic; urgency=medium
+
+  [ James Page ]
+  * d/p/*: Drop, no longer needed.
+
+  [ Corey Bryant ]
+  * New upstream milestone for OpenStack Queens.
+  * d/watch: Scope to Queens series.
+  * d/control: Align (Build-)Depends with upstream.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Fri, 26 Jan 2018 15:23:41 -0500
+
+networking-ovn (4.0.0~b2-0ubuntu1) bionic; urgency=medium
+
+  * New upstream milestone for OpenStack Queens.
+  * d/control: Align (Build-)Depends with upstream.
+  * d/*: wrap-and-sort -bast.
+  * d/control,compat: Bump debhelper compat to 10.
+  * d/control: Bumped Standards-Version to 4.1.2.
+  * d/p/fix-test-failures.patch: Cherry pick fix for compat with neutron
+    12.0.0~b2.
+
+ -- James Page <james.page@ubuntu.com>  Mon, 11 Dec 2017 21:41:38 +0000
+
+networking-ovn (4.0.0~b1-0ubuntu1) bionic; urgency=medium
+
+  * New upstream milestone for OpenStack Queens.
+  * d/control: Align (Build-)Depends with upstream.
+  * d/p/drop-openstackdoctheme.patch: Dropped. No longer needed.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Wed, 15 Nov 2017 16:12:51 -0500
+
+networking-ovn (3.0.0-0ubuntu1) artful; urgency=medium
+
+  * New upstream release for OpenStack Pike.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Wed, 30 Aug 2017 10:02:13 -0400
+
+networking-ovn (3.0.0~rc2-0ubuntu1) artful; urgency=medium
+
+  * New upstream release candidate for OpenStack Pike.
+  * d/p/fix-gate-mtu-tests.patch: Dropped. Fixed upstream.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 24 Aug 2017 12:22:57 -0400
+
+networking-ovn (3.0.0~rc1-0ubuntu1) artful; urgency=medium
+
+  * New upstream release candidate for OpenStack Pike.
+  * d/control: Align (Build-)Depends with upstream.
+  * d/p/drop-openstackdoctheme.patch: Temporarily drop openstackdocstheme
+    sphinx extension until sphinx>=1.6.2 is available.
+  * d/p/fix-gate-mtu-tests.patc: Cherry-picked from upstream to fix failing
+    tests by updating mtu to 1450.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 17 Aug 2017 21:45:25 -0400
+
+networking-ovn (3.0.0~b2-0ubuntu1) artful; urgency=medium
+
+  * New upstream milestone for OpenStack Pike.
+  * d/control: Align (Build-)Depends with upstream.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 16 Jun 2017 22:35:24 +0100
+
+networking-ovn (3.0.0~b1-0ubuntu1) artful; urgency=medium
+
+  * New upstream milestone for OpenStack Pike.
+  * Align (Build-)Depends with upstream milestone.
+
+ -- James Page <james.page@ubuntu.com>  Wed, 26 Apr 2017 15:36:26 +0100
+
+networking-ovn (2.0.0-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release for OpenStack Ocata.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Wed, 22 Feb 2017 10:12:39 -0500
+
+networking-ovn (2.0.0~rc1-0ubuntu1) zesty; urgency=medium
+
+  * New upstream milestone for Ocata. 
+
+ -- Chuck Short <zulcss@ubuntu.com>  Wed, 08 Feb 2017 08:31:58 -0500
+
+networking-ovn (2.0.0~b3-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release.
+  * d/control: Align (build-)depends with upstream.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Mon, 30 Jan 2017 11:25:49 -0500
+
+networking-ovn (2.0.0~b2-0ubuntu1) zesty; urgency=medium
+
+  * New upstream milestone for OpenStack Ocata.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Fri, 16 Dec 2016 14:39:58 -0500
+
+networking-ovn (2.0.0~b1-0ubuntu1) zesty; urgency=medium
+
+  [ Chuck Short ]
+  * New upstream version.
+  * debian/changelog: Add python-tenacity
+
+  [ David Della Vecchia ]
+  * New upstream milestone for OpenStack Ocata.
+  * d/control: Align (build-)depends with upstream.
+
+  [ Corey Bryant ]
+  * d/control: Set min version of python-pbr to 1.8.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Tue, 22 Nov 2016 09:42:35 -0500
+
+networking-ovn (1.0.0-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release for OpenStack Newton.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 06 Oct 2016 11:07:12 -0400
+
+networking-ovn (1.0.0~rc2-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release candidate for OpenStack Newton.
+
+ -- James Page <james.page@ubuntu.com>  Wed, 28 Sep 2016 09:01:05 +0100
+
+networking-ovn (1.0.0~rc1-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release candidate for OpenStack Newton.
+  * Update watch file to use tarballs.openstack.org.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 16 Sep 2016 11:32:58 +0100
+
+networking-ovn (1.0.0~b3-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release.
+  * Align (Build-)Depends with upstream.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 02 Sep 2016 10:23:49 +0100
+
+networking-ovn (1.0.0~b2-1) experimental; urgency=medium
+
+  * Initial release (Closes: #833765).
+
+ -- James Page <james.page@ubuntu.com>  Tue, 09 Aug 2016 14:24:59 +0100
