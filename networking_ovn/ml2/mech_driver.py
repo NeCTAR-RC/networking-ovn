@@ -839,19 +839,8 @@ class OVNMechanismDriver(api.MechanismDriver):
 
     def update_segment_host_mapping(self, host, phy_nets):
         """Update SegmentHostMapping in DB"""
-        if not host:
-            return
-
-        ctx = n_context.get_admin_context()
-        segments = segment_service_db.get_segments_with_phys_nets(
-            ctx, phy_nets)
-
-        available_seg_ids = {
-            segment['id'] for segment in segments
-            if segment['network_type'] in ('flat', 'vlan')}
-
-        segment_service_db.update_segment_host_mapping(
-            ctx, host, available_seg_ids)
+        # Disabled as this will conflict with linuxbridge networks
+        return
 
     def _add_segment_host_mapping_for_segment(self, resource, event, trigger,
                                               context, segment):
