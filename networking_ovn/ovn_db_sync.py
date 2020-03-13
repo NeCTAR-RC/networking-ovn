@@ -1207,8 +1207,6 @@ class OvnSbSynchronizer(OvnDbSynchronizer):
         """
         LOG.debug("Starting OVN-Southbound DB sync process")
 
-        ctx = context.get_admin_context()
-        self.sync_hostname_and_physical_networks(ctx)
         if utils.is_ovn_l3(self.l3_plugin):
             self.l3_plugin.schedule_unhosted_gateways()
 

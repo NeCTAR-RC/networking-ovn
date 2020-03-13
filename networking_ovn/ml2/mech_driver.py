@@ -839,6 +839,7 @@ class OVNMechanismDriver(api.MechanismDriver):
 
     def update_segment_host_mapping(self, host, phy_nets):
         """Update SegmentHostMapping in DB"""
+        return
         if not host:
             return
 

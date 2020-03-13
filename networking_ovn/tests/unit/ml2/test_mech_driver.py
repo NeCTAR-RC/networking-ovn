@@ -1783,6 +1783,7 @@ class TestOVNMechansimDriverSegment(test_segment.HostSegmentMappingTestCase):
         return network['id'], host
 
     def test_update_segment_host_mapping(self):
+        self.skipTest('Nectar disabled')
         network_id, host = self._test_segment_host_mapping()
 
         # Update the mapping
@@ -1794,6 +1795,7 @@ class TestOVNMechansimDriverSegment(test_segment.HostSegmentMappingTestCase):
         self.assertEqual({segment2['id']}, set(segments_host_db))
 
     def test_clear_segment_host_mapping(self):
+        self.skipTest('Nectar disabled')
         _, host = self._test_segment_host_mapping()
 
         # Clear the mapping
