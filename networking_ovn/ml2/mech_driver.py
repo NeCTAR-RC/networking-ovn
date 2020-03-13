@@ -296,6 +296,10 @@ class OVNMechanismDriver(api.MechanismDriver):
         cannot block.  Raising an exception will result in a rollback
         of the current transaction.
         """
+        for network_segment in context.network_segments:
+            network_type = network_segment['network_type']
+            if network_type not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+                return
         self._validate_network_segments(context.network_segments)
         db_rev.create_initial_revision(
             context.current['id'], ovn_const.TYPE_NETWORKS,
@@ -313,6 +317,10 @@ class OVNMechanismDriver(api.MechanismDriver):
         cause the deletion of the resource.
         """
         network = context.current
+        network_type = network['provider:network_type']
+        if network_type not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+            return
+
         self._ovn_client.create_network(network)
 
     def update_network_precommit(self, context):
@@ -331,6 +339,10 @@ class OVNMechanismDriver(api.MechanismDriver):
         network state. It is up to the mechanism driver to ignore
         state or state changes that it does not know or care about.
         """
+        for network_segment in context.network_segments:
+            network_type = network_segment['network_type']
+            if network_type not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+                return
         self._validate_network_segments(context.network_segments)
 
     def update_network_postcommit(self, context):
@@ -353,6 +365,11 @@ class OVNMechanismDriver(api.MechanismDriver):
         # https://bugs.launchpad.net/neutron/+bug/1739798 is fixed.
         if context._plugin_context.session.is_active:
             return
+        network = context.current
+        network_type = network['provider:network_type']
+        if network_type not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+            return
+
         self._ovn_client.update_network(context.current)
 
     def delete_network_postcommit(self, context):
@@ -367,6 +384,10 @@ class OVNMechanismDriver(api.MechanismDriver):
         expected, and will not prevent the resource from being
         deleted.
         """
+        network = context.current
+        network_type = network['provider:network_type']
+        if network_type not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+            return
         self._ovn_client.delete_network(context.current['id'])
 
     def create_subnet_precommit(self, context):
@@ -396,6 +417,8 @@ class OVNMechanismDriver(api.MechanismDriver):
         of the current transaction.
         """
         port = context.current
+        if context.network.current.get('provider:network_type') not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+            return
         if utils.is_lsp_ignored(port):
             return
         utils.validate_and_get_data_from_binding_profile(port)
@@ -491,6 +514,9 @@ class OVNMechanismDriver(api.MechanismDriver):
         """
         port = copy.deepcopy(context.current)
         port['network'] = context.network.current
+        if context.network.current.get('provider:network_type') not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+            return
+        
         self._ovn_client.create_port(port)
         self._notify_dhcp_updated(port['id'])
 
@@ -511,6 +537,11 @@ class OVNMechanismDriver(api.MechanismDriver):
         """
         port = context.current
         original_port = context.original
+        #if port[portbindings.VIF_TYPE] != portbindings.VIF_TYPE_OVS:
+        #    return
+        if context.network.current.get('provider:network_type') not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+            return
+        
         self._validate_ignored_port(port, original_port)
         utils.validate_and_get_data_from_binding_profile(port)
         if self._is_port_provisioning_required(port, context.host,
@@ -547,11 +578,19 @@ class OVNMechanismDriver(api.MechanismDriver):
         port['network'] = context.network.current
         original_port = copy.deepcopy(context.original)
         original_port['network'] = context.network.current
-
+        
         # NOTE(mjozefcz): Check if port is in migration state. If so update
         # the port status from DOWN to UP in order to generate 'fake'
         # vif-interface-plugged event. This workaround is needed to
         # perform live-migration with live_migration_wait_for_vif_plug=True.
+        if context.network.current.get('provider:network_type') not in [const.TYPE_GENEVE, const.TYPE_FLAT]:
+            return
+            
+        #if port[portbindings.VIF_TYPE] != portbindings.VIF_TYPE_OVS:
+        #    return
+        #if context.network.current['provider:network_type'] != const.TYPE_GENEVE:
+        #    return
+        
         if ((port['status'] == const.PORT_STATUS_DOWN and
              ovn_const.MIGRATING_ATTR in port[portbindings.PROFILE].keys() and
              port[portbindings.VIF_TYPE] == portbindings.VIF_TYPE_OVS)):
@@ -843,6 +882,7 @@ class OVNMechanismDriver(api.MechanismDriver):
 
     def update_segment_host_mapping(self, host, phy_nets):
         """Update SegmentHostMapping in DB"""
+        return
         if not host:
             return
 
